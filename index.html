@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayNudge - Invoice Chase Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f4f5;
+            --surface: #ffffff;
+            --border: #e4e4e7;
+            --text-main: #27272a;
+            --text-muted: #71717a;
+            --primary: #18181b;
+            --primary-hover: #3f3f46;
+            --radius: 12px;
+        }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            background-color: var(--bg); 
+            color: var(--text-main); 
+            display: flex; 
+            gap: 24px; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            line-height: 1.6;
+        }
+
+        .sidebar { 
+            width: 100%; 
+            max-width: 260px; 
+            background: var(--surface); 
+            padding: 24px; 
+            border-radius: var(--radius); 
+            border: 1px solid var(--border);
+            height: fit-content; 
+        }
+
+        .card { 
+            max-width: 640px; 
+            flex: 1; 
+            min-width: 320px; 
+            background: var(--surface); 
+            padding: 32px; 
+            border-radius: var(--radius); 
+            border: 1px solid var(--border);
+        }
+
+        h1 { margin: 0 0 8px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+        h2 { margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        p.subtitle { color: var(--text-muted); margin-bottom: 32px; font-size: 15px; }
+        
+        label { display: block; font-weight: 500; margin-bottom: 8px; margin-top: 20px; font-size: 14px; }
+        input[type="file"], select { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-family: inherit;
+            font-size: 14px;
+            background-color: #fafafa;
+            transition: border-color 0.2s ease;
+        }
+        input[type="file"]:focus, select:focus { outline: none; border-color: var(--text-muted); }
+        
+        button.primary { 
+            background-color: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            font-size: 15px; 
+            font-weight: 600; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 32px; 
+            transition: background-color 0.2s ease;
+        }
+        button.primary:hover { background-color: var(--primary-hover); }
+        .loading { opacity: 0.7; pointer-events: none; }
+        
+        /* History Styles */
+        .history-item { 
+            padding: 12px; 
+            border-bottom: 1px solid var(--border); 
+            cursor: pointer; 
+            font-size: 13px; 
+            color: var(--text-main); 
+            transition: background-color 0.2s ease;
+            border-radius: 6px;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-item:hover { background-color: var(--bg); }
+        .empty-history { color: var(--text-muted); font-size: 14px; font-style: italic; }
+
+        /* Step Card Styling */
+        .step-card { 
+            background-color: #fafafa; 
+            border: 1px solid var(--border); 
+            padding: 24px; 
+            margin-top: 24px; 
+            border-radius: 10px; 
+        }
+        
+        /* Markdown Formatting */
+        .md-h3 { font-size: 18px; font-weight: 700; margin: 0 0 16px 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px;}
+        .md-h4 { font-size: 15px; font-weight: 600; margin: 16px 0 8px 0; color: var(--text-main); }
+        .md-bold { font-weight: 600; color: var(--primary); }
+        .md-list { margin: 8px 0; padding-left: 20px; }
+        .md-p { margin: 0 0 12px 0; font-size: 15px; }
+
+        /* Button Group */
+        .action-row { 
+            display: flex; 
+            gap: 8px; 
+            margin-top: 24px; 
+            flex-wrap: wrap; 
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+        .action-btn { 
+            flex: 1; 
+            min-width: 100px; 
+            padding: 8px 12px; 
+            border: 1px solid var(--border); 
+            background-color: var(--surface);
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            text-align: center; 
+            text-decoration: none; 
+            font-size: 13px; 
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover { background-color: var(--bg); border-color: #d4d4d8; }
+        .icon { width: 16px; height: 16px; opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Recent Chases</h2>
+        <div id="historyList">
+            <div class="empty-history">No past invoices yet.</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h1>PayNudge</h1>
+        <p class="subtitle">Upload an unpaid invoice to generate a 3-step payment chase plan.</p>
+        
+        <label for="invoiceFile">Invoice Image (PNG or JPG)</label>
+        <input type="file" id="invoiceFile" accept="image/png, image/jpeg">
+        
+        <div style="display: flex; gap: 16px;">
+            <div style="flex: 1;">
+                <label for="days">Days Overdue</label>
+                <select id="days">
+                    <option value="7">7 Days</option>
+                    <option value="14" selected>14 Days</option>
+                    <option value="30">30+ Days</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label for="relationship">Client Relationship</label>
+                <select id="relationship">
+                    <option value="New client">New Client</option>
+                    <option value="Regular client" selected>Regular Client</option>
+                    <option value="Large enterprise">Large Enterprise</option>
+                </select>
+            </div>
+        </div>
+        
+        <label for="language">Output Language</label>
+        <select id="language">
+            <option value="English" selected>English</option>
+            <option value="Spanish">Spanish</option>
+            <option value="French">French</option>
+        </select>
+        
+        <button id="generateBtn" class="primary" onclick="generatePlan()">Generate Chase Plan</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const LAMBDA_URL = "https://jy5poy3itap7f7iltair63dyxe0qwtjm.lambda-url.us-east-1.on.aws/";
+
+        window.onload = loadHistory;
+
+        async function generatePlan() {
+            const fileInput = document.getElementById('invoiceFile');
+            const resultDiv = document.getElementById('result');
+            const btn = document.getElementById('generateBtn');
+            
+            if (!fileInput.files.length) {
+                alert("Please select an invoice image.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = async function() {
+                const base64Data = reader.result.split(',')[1];
+                const format = file.type === 'image/jpeg' ? 'jpeg' : 'png';
+                
+                btn.classList.add('loading');
+                btn.innerText = "Analyzing Invoice...";
+                resultDiv.innerHTML = "<div class='step-card'>Reading invoice and crafting strategy. This takes a few seconds...</div>";
+
+                try {
+                    const response = await fetch(LAMBDA_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image_base64: base64Data,
+                            image_format: format,
+                            days_overdue: document.getElementById('days').value,
+                            relationship: document.getElementById('relationship').value,
+                            language: document.getElementById('language').value
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        saveToHistory(data.plan);
+                        renderResult(data.plan);
+                    } else {
+                        resultDiv.innerHTML = `<div class='step-card'>API Error: ${data.error || "Unknown error."}</div>`;
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = `<div class='step-card'>Network Error. Check if your Function URL is correct and CORS is configured.</div>`;
+                } finally {
+                    btn.classList.remove('loading');
+                    btn.innerText = "Generate Chase Plan";
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Lightweight Markdown Parser
+        function parseMarkdown(text) {
+            let html = text;
+            
+            // Protect newlines before processing block elements
+            html = html.replace(/\r\n/g, '\n');
+            
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<span class="md-bold">$1</span>');
+            
+            // Headers (H3 for steps, H4 for subsections)
+            html = html.replace(/^### (.*?)$/gm, '<h4 class="md-h4">$1</h4>');
+            html = html.replace(/^## (.*?)$/gm, '<h3 class="md-h3">$1</h3>');
+            
+            // Lists (Simple bullet points)
+            html = html.replace(/^[\*\-] (.*?)$/gm, '<li style="margin-bottom: 4px;">$1</li>');
+            // Wrap consecutive <li> tags in <ul>
+            html = html.replace(/(<li>.*?<\/li>\n*)+/g, '<ul class="md-list">$&</ul>');
+            
+            // Paragraphs (Line breaks)
+            html = html.split('\n').map(line => {
+                if (line.trim() === '' || line.startsWith('<h') || line.startsWith('<u') || line.startsWith('<li')) {
+                    return line;
+                }
+                return `<p class="md-p">${line}</p>`;
+            }).join('\n');
+
+            return html;
+        }
+
+        function renderResult(planText) {
+            const container = document.getElementById('result');
+            container.innerHTML = '';
+            
+            // Safely split by "## STEP" but keep the delimiter for parsing
+            const chunks = planText.split(/(?=##\s*STEP)/i);
+            
+            chunks.forEach(chunk => {
+                if (!chunk.trim()) return;
+                
+                const htmlContent = parseMarkdown(chunk);
+                const rawText = chunk.replace(/`/g, "'").replace(/\*\*/g, ""); // Cleaned text for copying/links
+                
+                // Only attach action buttons if this chunk looks like an actual Step
+                if (/##\s*STEP/i.test(chunk)) {
+                    const waUrl = "https://wa.me/?text=" + encodeURIComponent(rawText);
+                    const emailUrl = "mailto:?subject=Invoice Follow-up&body=" + encodeURIComponent(rawText);
+                    
+                    container.innerHTML += `
+                    <div class="step-card">
+                        ${htmlContent}
+                        <div class="action-row">
+                            <a href="${waUrl}" target="_blank" class="action-btn">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                WhatsApp
+                            </a>
+                            <a href="${emailUrl}" target="_blank" class="action-btn">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                Email
+                            </a>
+                            <button onclick="copyText(this, \`${rawText}\`)" class="action-btn">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>`;
+                } else {
+                    // Introduction or summary chunks get rendered without action buttons
+                    container.innerHTML += `<div class="step-card">${htmlContent}</div>`;
+                }
+            });
+        }
+
+        function copyText(btnElement, text) {
+            navigator.clipboard.writeText(text);
+            const originalHTML = btnElement.innerHTML;
+            btnElement.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied`;
+            setTimeout(() => { btnElement.innerHTML = originalHTML; }, 2000);
+        }
+
+        function saveToHistory(planText) {
+            let history = JSON.parse(localStorage.getItem('paynudge_history') || '[]');
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const date = new Date().toLocaleDateString();
+            
+            let label = `Invoice Chase - ${date} ${timestamp}`;
+            
+            history.unshift({ label: label, plan: planText });
+            if (history.length > 6) history.pop(); // Keep last 6
+            
+            localStorage.setItem('paynudge_history', JSON.stringify(history));
+            loadHistory();
+        }
+
+        function loadHistory() {
+            let history = JSON.parse(localStorage.getItem('paynudge_history') || '[]');
+            const list = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                list.innerHTML = '<div class="empty-history">No past invoices yet.</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            history.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerText = item.label;
+                div.onclick = () => renderResult(item.plan);
+                list.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
